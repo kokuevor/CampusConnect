@@ -1,15 +1,5 @@
 import mongoose, { Schema, type Document } from "mongoose";
-import { KNUST_CAMPUS_LOCATIONS } from "@/lib/types/trip";
-
-export { KNUST_CAMPUS_LOCATIONS };
-
-export type CampusLocation = (typeof KNUST_CAMPUS_LOCATIONS)[number];
-
-export interface ILocation {
-  type: "campus" | "off-campus";
-  campusLocation?: CampusLocation;
-  offCampusAddress?: string;
-}
+import { KNUST_CAMPUS_LOCATIONS, type ILocation } from "@/lib/types/trip";
 
 export interface ITrip extends Document {
   travelerId: mongoose.Types.ObjectId;
@@ -59,12 +49,7 @@ const TripSchema = new Schema<ITrip>(
   }
 );
 
-// Safely check if model already exists
-let TripModel;
-try {
-  TripModel = mongoose.models.Trip;
-} catch (error) {
-  TripModel = null;
-}
+// Safely check if model already exists to avoid OverwriteModelError
+const Trip = mongoose.models.Trip || mongoose.model<ITrip>("Trip", TripSchema);
 
-export default TripModel || mongoose.model<ITrip>("Trip", TripSchema);
+export default Trip;

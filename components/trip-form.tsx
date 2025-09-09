@@ -23,7 +23,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, Clock, Users, Car, AlertCircle, Route } from "lucide-react";
-import { KNUST_CAMPUS_LOCATIONS, type ILocation } from "@/lib/models/Trip";
+import { KNUST_CAMPUS_LOCATIONS, type ILocation } from "@/lib/types/trip";
 
 interface TripFormProps {
   onSubmit?: (trip: any) => void;

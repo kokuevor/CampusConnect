@@ -23,10 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MapPin, DollarSign, Clock, Package, AlertCircle } from "lucide-react";
-import {
-  KNUST_CAMPUS_LOCATIONS,
-  type ILocation,
-} from "@/lib/models/DeliveryRequest";
+import { KNUST_CAMPUS_LOCATIONS, type ILocation } from "@/lib/types/trip";
 
 interface DeliveryRequestFormProps {
   onSubmit?: (request: any) => void;

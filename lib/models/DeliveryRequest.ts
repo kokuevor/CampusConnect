@@ -1,15 +1,5 @@
 import mongoose, { Schema, type Document } from "mongoose";
-import { KNUST_CAMPUS_LOCATIONS } from "@/lib/types/trip";
-
-export { KNUST_CAMPUS_LOCATIONS };
-
-export type CampusLocation = (typeof KNUST_CAMPUS_LOCATIONS)[number];
-
-export interface ILocation {
-  type: "campus" | "off-campus";
-  campusLocation?: CampusLocation;
-  offCampusAddress?: string;
-}
+import { KNUST_CAMPUS_LOCATIONS, type ILocation } from "@/lib/types/trip";
 
 export interface IDeliveryRequest extends Document {
   userId: mongoose.Types.ObjectId;
@@ -69,19 +59,9 @@ const DeliveryRequestSchema = new Schema<IDeliveryRequest>(
   }
 );
 
-// Safely check if model already exists
-let DeliveryRequestModel;
-try {
-  DeliveryRequestModel = mongoose.models.DeliveryRequest;
-  // If model exists, delete it to force recreation with new schema
-  if (DeliveryRequestModel) {
-    delete mongoose.models.DeliveryRequest;
-  }
-} catch (error) {
-  DeliveryRequestModel = null;
-}
+// Safely check if model already exists to avoid OverwriteModelError
+const DeliveryRequest =
+  mongoose.models.DeliveryRequest ||
+  mongoose.model<IDeliveryRequest>("DeliveryRequest", DeliveryRequestSchema);
 
-export default mongoose.model<IDeliveryRequest>(
-  "DeliveryRequest",
-  DeliveryRequestSchema
-);
+export default DeliveryRequest;
