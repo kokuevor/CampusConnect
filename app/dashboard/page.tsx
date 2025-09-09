@@ -40,8 +40,10 @@ import {
   ArrowLeft,
   Car,
   Filter,
+  Settings,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DeliveryRequestForm } from "@/components/delivery-request-form";
 import { TripForm } from "@/components/trip-form";
 import { ChatInterface } from "@/components/chat-interface";
@@ -573,6 +575,21 @@ export default function DashboardPage() {
             })}
           </ul>
         </nav>
+
+        {/* Developer Tools */}
+        {process.env.NODE_ENV === "development" && (
+          <div className="p-4 border-t border-sidebar-border">
+            <Link href="/api-test">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent/50 mb-2"
+              >
+                <Settings className="h-5 w-5 mr-3" />
+                API Test Interface
+              </Button>
+            </Link>
+          </div>
+        )}
 
         {/* Logout Footer */}
         <div className="p-4 border-t border-sidebar-border">

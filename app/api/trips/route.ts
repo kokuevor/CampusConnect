@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Trip from "@/lib/models/Trip";
+import User from "@/lib/models/User";
 import { verifyToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
@@ -109,6 +110,9 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
+    // Ensure User model is registered
+    User;
+
     // Verify authentication
     const token = request.cookies.get("auth-token")?.value;
     if (!token) {
@@ -133,12 +137,13 @@ export async function GET(request: NextRequest) {
     if (status) {
       query.status = status;
     }
+
     // Fetch trips with user information
-    const trips = await Trip.find(query)
+    const tripsQuery = Trip.find(query);
+    const trips = await tripsQuery
       .sort({ createdAt: -1 })
       .limit(limit)
-      .populate("travelerId", "firstName lastName email studentId")
-      .exec();
+      .populate("travelerId", "firstName lastName email studentId");
 
     const tripsData = trips.map((trip: any) => ({
       id: trip._id.toString(),

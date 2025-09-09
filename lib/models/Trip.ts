@@ -59,12 +59,5 @@ const TripSchema = new Schema<ITrip>(
   }
 );
 
-// Safely check if model already exists
-let TripModel;
-try {
-  TripModel = mongoose.models.Trip;
-} catch (error) {
-  TripModel = null;
-}
-
-export default TripModel || mongoose.model<ITrip>("Trip", TripSchema);
+export default mongoose.models.Trip ||
+  mongoose.model<ITrip>("Trip", TripSchema);
