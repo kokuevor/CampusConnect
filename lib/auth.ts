@@ -12,6 +12,20 @@ console.log(
   JWT_SECRET?.length
 );
 
+// Validate JWT_SECRET exists and is strong enough
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
+  console.error(
+    "CRITICAL: JWT_SECRET environment variable must be set in production!"
+  );
+  throw new Error("JWT_SECRET environment variable is required in production");
+}
+
+if (JWT_SECRET.length < 32) {
+  console.warn(
+    "WARNING: JWT_SECRET should be at least 32 characters long for better security"
+  );
+}
+
 export interface JWTPayload {
   userId: string;
   email: string;

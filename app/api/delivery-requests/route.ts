@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import DeliveryRequest from "@/lib/models/DeliveryRequest";
+import User from "@/lib/models/User";
 import { verifyToken } from "@/lib/auth";
 import mongoose from "mongoose";
 import { KNUST_CAMPUS_LOCATIONS } from "@/lib/types/trip";
@@ -210,6 +211,9 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     await dbConnect();
+
+    // Ensure User model is registered (fix for MissingSchemaError)
+    User;
 
     // Verify authentication
     const token = request.cookies.get("auth-token")?.value;

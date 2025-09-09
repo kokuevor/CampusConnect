@@ -98,7 +98,14 @@ export default function DashboardPage() {
           return;
         }
 
-        // Check if we have a token in cookies
+        // Only run cookie check on client side to avoid hydration issues
+        if (typeof window === "undefined") {
+          // On server side, just set loading to false and let client handle auth
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if we have a token in cookies (client-side only)
         const token = document.cookie
           .split("; ")
           .find((row) => row.startsWith("auth-token="))
@@ -113,7 +120,9 @@ export default function DashboardPage() {
         // Verify token with API
         try {
           console.log("Dashboard: Verifying token with API...");
-          const response = await fetch("/api/auth-test");
+          const response = await fetch("/api/auth-test", {
+            credentials: "include",
+          });
           console.log("Dashboard: /api/auth-test response:", response.status);
 
           if (response.ok) {
@@ -155,6 +164,8 @@ export default function DashboardPage() {
       });
       if (tripsResponse.ok) {
         const tripsData = await tripsResponse.json();
+        console.log("✅ Trips API Response:", tripsData);
+        console.log("📝 Trips Data:", tripsData.trips);
         dispatch({ type: "SET_TRIPS", payload: tripsData.trips || [] });
       } else {
         console.error("Failed to fetch trips:", tripsResponse.status);
@@ -166,6 +177,8 @@ export default function DashboardPage() {
       });
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json();
+        console.log("✅ Delivery Requests API Response:", requestsData);
+        console.log("📦 Requests Data:", requestsData.requests);
         dispatch({
           type: "SET_DELIVERY_REQUESTS",
           payload: requestsData.requests || [],
@@ -201,7 +214,14 @@ export default function DashboardPage() {
   }
 
   if (!state.isAuthenticated || !state.user) {
-    return null; // Will redirect in useEffect
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Authenticating...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleLogout = async () => {
@@ -642,18 +662,33 @@ export default function DashboardPage() {
             <>
               {activeTab === "requests" && (
                 <MyRequestsContent
-                  requests={state.deliveryRequests.filter(
-                    (req) => req.userId === state.user!.id
-                  )}
+                  requests={(() => {
+                    const userRequests = state.deliveryRequests.filter(
+                      (req) => req.userId === state.user!.id
+                    );
+                    console.log(
+                      "🔍 All Delivery Requests:",
+                      state.deliveryRequests
+                    );
+                    console.log("👤 Current User ID:", state.user!.id);
+                    console.log("📋 Filtered User Requests:", userRequests);
+                    return userRequests;
+                  })()}
                   onCreateRequest={() => setShowRequestForm(true)}
                   onWriteReview={(delivery) => setShowReviewForm(delivery)}
                 />
               )}
               {activeTab === "trips" && (
                 <MyTripsContent
-                  trips={state.trips.filter(
-                    (trip) => trip.travelerId === state.user!.id
-                  )}
+                  trips={(() => {
+                    const userTrips = state.trips.filter(
+                      (trip) => trip.travelerId === state.user!.id
+                    );
+                    console.log("🚗 All Trips:", state.trips);
+                    console.log("👤 Current User ID:", state.user!.id);
+                    console.log("🎯 Filtered User Trips:", userTrips);
+                    return userTrips;
+                  })()}
                   onCreateTrip={() => setShowTripForm(true)}
                   onWriteReview={(delivery) => setShowReviewForm(delivery)}
                 />
@@ -849,6 +884,42 @@ function MyTripsContent({
   onCreateTrip: () => void;
   onWriteReview: (delivery: any) => void;
 }) {
+  const handleEditTrip = (trip: any) => {
+    // TODO: Implement edit functionality
+    toast({
+      title: "Edit Trip",
+      description: "Trip editing will be available soon!",
+    });
+  };
+
+  const handleDeleteTrip = async (tripId: string) => {
+    if (!confirm("Are you sure you want to delete this trip?")) return;
+
+    try {
+      const response = await fetch(`/api/trips/${tripId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete trip");
+      }
+
+      toast({
+        title: "✅ Trip deleted successfully!",
+        description: "The trip has been removed from the system.",
+      });
+
+      // Refresh the page to update the list
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "❌ Failed to delete trip",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
   const getTransportIcon = (method: string) => {
     switch (method?.toLowerCase()) {
       case "car":
@@ -931,6 +1002,29 @@ function MyTripsContent({
                   <span className="font-medium text-primary">
                     GHC {trip.currentDeliveries * trip.pricePerDelivery}
                   </span>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditTrip(trip)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteTrip(trip.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                  {trip.status === "active" && (
+                    <Badge className="bg-green-100 text-green-800">
+                      Available for deliveries
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1269,6 +1363,116 @@ function FeedContent({
   allTrips: any[];
   currentUserId: string;
 }) {
+  const handleJoinTrip = async (trip: any) => {
+    console.log("🚗 handleJoinTrip called with trip:", trip);
+    try {
+      const response = await fetch(`/api/trips/${trip.id}/join`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const data = await response.json();
+      console.log("📞 Join trip API response:", response.status, data);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to join trip");
+      }
+
+      toast({
+        title: "🚗 Trip Join Request Sent!",
+        description: data.message,
+      });
+      console.log("✅ Join trip toast shown");
+    } catch (error) {
+      console.error("Join trip error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to join trip",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOfferToDeliver = async (request: any) => {
+    console.log("📦 handleOfferToDeliver called with request:", request);
+    try {
+      const response = await fetch(
+        `/api/delivery-requests/${request.id}/offer`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+      console.log("📞 Offer delivery API response:", response.status, data);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to offer delivery");
+      }
+
+      toast({
+        title: "📦 Delivery Offer Sent!",
+        description: data.message,
+      });
+      console.log("✅ Offer delivery toast shown");
+    } catch (error) {
+      console.error("Offer to deliver error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to offer delivery",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewMatch = async (item: any) => {
+    console.log("🔗 handleViewMatch called with item:", item);
+    try {
+      let matchType = "all";
+      if (item.type === "trip") matchType = "my-trips";
+      if (item.type === "request") matchType = "my-requests";
+      if (item.type === "route-notification") matchType = "my-trips";
+      if (item.type === "request-notification") matchType = "my-requests";
+
+      console.log("🎯 Match type determined:", matchType);
+      const response = await fetch(
+        `/api/matches?type=${matchType}&minScore=50`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+      console.log("📞 View matches API response:", response.status, data);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch matches");
+      }
+
+      const matchCount = data.totalMatches || 0;
+
+      toast({
+        title: "🔗 Matches Found",
+        description: `Found ${matchCount} potential matches! Check console for details.`,
+      });
+      console.log("✅ View matches toast shown");
+
+      // In a real app, you would navigate to a matches page or show a modal
+      console.log("Match data for", item.type, ":", data);
+    } catch (error) {
+      console.error("View matches error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch matches",
+        variant: "destructive",
+      });
+    }
+  };
   const [filterType, setFilterType] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
 
@@ -1938,6 +2142,13 @@ function FeedContent({
                           <Button
                             size="sm"
                             className="bg-green-600 hover:bg-green-700"
+                            onClick={() => {
+                              console.log(
+                                "🖱️ Route Match button clicked! Item:",
+                                item
+                              );
+                              handleViewMatch(item);
+                            }}
                           >
                             🚨 View Route Match
                           </Button>
@@ -1955,6 +2166,13 @@ function FeedContent({
                           <Button
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              console.log(
+                                "🖱️ Request Match button clicked! Item:",
+                                item
+                              );
+                              handleViewMatch(item);
+                            }}
                           >
                             📦 View Request Match
                           </Button>
@@ -1977,6 +2195,24 @@ function FeedContent({
                           <Button
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700"
+                            onClick={() => {
+                              console.log(
+                                "🖱️ Feed button clicked! Item type:",
+                                item.type,
+                                "Item:",
+                                item
+                              );
+                              if (item.type === "request") {
+                                console.log("📦 Calling handleOfferToDeliver");
+                                handleOfferToDeliver(item);
+                              } else if (item.type === "match") {
+                                console.log("🔗 Calling handleViewMatch");
+                                handleViewMatch(item);
+                              } else {
+                                console.log("🚗 Calling handleJoinTrip");
+                                handleJoinTrip(item);
+                              }
+                            }}
                           >
                             {item.type === "request"
                               ? "📦 Offer to Deliver"

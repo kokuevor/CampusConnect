@@ -43,3 +43,20 @@ export interface ITrip {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IDeliveryRequest {
+  userId: string;
+  pickupLocation: ILocation;
+  dropoffLocation: ILocation;
+  itemDescription: string;
+  itemSize: "Small" | "Medium" | "Large";
+  priority: "normal" | "high" | "urgent";
+  paymentAmount: number; // Payment in Ghana Cedi (GHC)
+  pickupDate: Date;
+  pickupTime: string;
+  contactInfo: string;
+  specialInstructions: string;
+  status: "pending" | "matched" | "in-transit" | "delivered" | "cancelled";
+  createdAt: Date;
+  updatedAt: Date;
+}
